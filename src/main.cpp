@@ -166,24 +166,19 @@ int main(int arg, char *argv[]){
 		running = false;
 	};
 	
-	ResultPtr callableExit;
-	ResultHandle versionHandle;
-	std::tie(callableExit, evalData) = registerEvalFn("exit", std::move(exitFn), std::move(evalData));
-	std::tie(versionHandle, evalData) = bindEvalName("version", std::string("0.0.1"), std::move(evalData));
+	auto callableExit = registerEvalFn("exit", std::move(exitFn), evalData);
+	auto versionName = bindEvalName("version", std::string("0.0.1"), evalData);
 
 	while(running){
 		std::string input = repl.input("> ");
 		repl.history_add(input);
-		
-		if(input == "exit" || input == "quit")
-			break;
 
-		//try{
-			ast = parseAll(input, evalData.typeData, std::move(ast));
+		try{
+			parseAll(input, evalData.typeData, ast);
 
 			for(auto expr : ast.root){
 				if(!expr) continue;
-				std::tie(evalResult, evalData) = eval({expr}, std::move(evalData));
+				evalResult = eval({expr}, evalData);
 				prevResults.emplace_back(std::move(evalResult.result));
 			}
 
@@ -192,7 +187,7 @@ int main(int arg, char *argv[]){
 					
 			coloredPrint(evalData.typeData, fmt::format("{}", type->str));
 			coloredPrint(evalData.typeData, fmt::format("  => {}\n", res->toString()));
-		/*}
+		}
 		catch(const LexError &lexError){
 			for(std::size_t i = 0; i < lexError.location().col; i++){
 				std::fputc(' ', stderr);
@@ -209,13 +204,7 @@ int main(int arg, char *argv[]){
 		}
 		catch(...){
 			throw;
-		}*/
-		
-		/*
-		fmt::print(fmt::fg(fmt::color::yellow), "{}\n", type->str);
-		fmt::print(fmt::fg(fmt::color::cyan), "=> {}", res->toString());
-		fmt::print(fmt::fg(fmt::color::white), "\n");
-		*/
+		}
 	}
 
 	return 0;
